@@ -1,18 +1,15 @@
 import streamlit as st
 import pandas as pd
-from pathlib import Path
 
 st.title("TMS FRANCAL - BUSCA")
 
-# Localiza o arquivo na mesma pasta onde o app.py está, sem depender de caminhos
-caminho_base = Path(__file__).parent / "base_Geral.xlsx"
+# FORMA SEGURA: O próprio usuário faz o upload do arquivo na hora
+uploaded_file = st.file_uploader("Selecione o arquivo base_Geral.xlsx", type=["xlsx"])
 
-if not caminho_base.exists():
-    st.error(f"Erro: Arquivo não encontrado em {caminho_base.absolute()}")
-    st.write("Arquivos encontrados nesta pasta:", [f.name for f in Path(__file__).parent.iterdir()])
-else:
+if uploaded_file is not None:
     try:
-        df = pd.read_excel(caminho_base, sheet_name="BASE DE CLIENTES", engine='openpyxl')
+        # Lê o arquivo que você subiu agora
+        df = pd.read_excel(uploaded_file, sheet_name="BASE DE CLIENTES", engine='openpyxl')
         st.success("Planilha carregada!")
         
         cnpj = st.text_input("Digite o CNPJ:")
@@ -26,3 +23,5 @@ else:
                 st.error("CNPJ não encontrado.")
     except Exception as e:
         st.error(f"Erro na leitura: {e}")
+else:
+    st.info("Por favor, selecione o arquivo base_Geral.xlsx acima.")
