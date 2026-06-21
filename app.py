@@ -1,22 +1,17 @@
 import streamlit as st
 import pandas as pd
 
-st.title("TMS FRANCAL - DIAGNÓSTICO DE ABAS")
+st.title("SISTEMA DE EMERGÊNCIA - TMS FRANCAL")
 
-# URL da aba "Clientes" que você publicou
-URL_CLIENTES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-k3doFN8BGK5YL9su9avmaFLgV97SbE3erJdh0YDJxACO3nNrYX6XTO0a7rhRtUN9xcdeIsLWurAr/pub?gid=1756592231&single=true&output=csv"
+# Link de Publicação direto da Aba 'Clientes' que você gerou
+URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-k3doFN8BGK5YL9su9avmaFLgV97SbE3erJdh0YDJxACO3nNrYX6XTO0a7rhRtUN9xcdeIsLWurAr/pub?gid=1756592231&single=true&output=csv"
 
 try:
-    df = pd.read_csv(URL_CLIENTES)
-    
-    st.success("Planilha 'Clientes' carregada com sucesso!")
-    
-    # Isso vai mostrar a lista de colunas na sua tela
-    st.write("### Nomes das colunas encontrados:")
-    st.write(df.columns.tolist())
-    
-    st.write("### Primeiras linhas da planilha (para conferência):")
-    st.write(df.head())
-
+    st.write("Tentando conectar à planilha...")
+    df = pd.read_csv(URL)
+    st.success("Conexão feita com sucesso!")
+    st.write("Colunas encontradas:", df.columns.tolist())
+    st.dataframe(df.head())
 except Exception as e:
-    st.error(f"Erro ao conectar: {e}")
+    st.error(f"Erro crítico: {e}")
+    st.info("Verifique se o link da publicação na web está correto e se a aba 'Clientes' foi publicada.")
