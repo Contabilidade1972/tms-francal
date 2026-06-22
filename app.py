@@ -1,61 +1,50 @@
 import streamlit as st
 import requests
-import re
 
-# --- CONFIGURAÇÃO E FUNÇÕES ---
 st.set_page_config(page_title="TMS FRANCAL", layout="wide")
-
-def formatar_cpf(v): return re.sub(r'(\d{3})(\d{3})(\d{3})(\d{2})', r'\1.\2.\3-\d{2}', re.sub(r'\D', '', v))
-
-st.sidebar.title("TMS FRANCAL")
-menu = st.sidebar.selectbox("Módulo", ["Operação: Coletas", "Cadastro: Motoristas"])
+menu = st.sidebar.selectbox("Módulo", ["Cadastro: Motoristas"])
 
 if menu == "Cadastro: Motoristas":
     st.title("Cadastro de Motoristas")
-    
-    # Gerenciamento de estado
     if 'data' not in st.session_state: st.session_state.data = None
 
-    # Botão de Limpar (FORA do formulário)
-    if st.button("Limpar / Novo Cadastro"):
-        st.session_state.data = None
-        st.rerun()
+    col_b, col_btn = st.columns([4, 1])
+    cpf_in = col_b.text_input("CPF (Somente números)")
+    if col_btn.button("Buscar"):
+        url = f"https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec?cpf={cpf_in}"
+        try:
+            resp = requests.get(url, timeout=10).json()
+            st.session_state.data = resp if "status" not in resp else None
+            st.rerun()
+        except: st.error("Erro na comunicação.")
 
-    c1, c2 = st.columns([3, 1])
-    with c1: cpf_in = st.text_input("CPF (Somente números)")
-    with c2: 
-        if st.button("Buscar"):
-            url = f"https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec?cpf={cpf_in}"
-            try:
-                resp = requests.get(url).json()
-                st.session_state.data = resp if "status" not in resp else None
-                st.rerun()
-            except: st.error("Erro na comunicação.")
-
-    d = st.session_state.data or ["", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+    d = st.session_state.data or [""] * 22
     
     with st.form("motorista_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            nome = st.text_input("Nome", value=d[0])
-            tel = st.text_input("Telefone", value=d[1])
-            cep = st.text_input("CEP", value=d[2])
-            logradouro = st.text_input("Logradouro", value=d[3])
-            numero = st.text_input("Número", value=d[4])
-        with col2:
-            uf = st.selectbox("UF", ["MG", "SP", "RJ", "ES", "DF"], index=0)
-            bairro = st.text_input("Bairro", value=d[6])
-            municipio = st.text_input("Município", value=d[7])
-            cpf = st.text_input("CPF", value=d[10])
-            rntrc = st.text_input("RNTRC", value=d[13])
+        st.subheader("Dados Pessoais e Bancários")
+        c1, c2, c3 = st.columns(3)
+        nome = c1.text_input("Nome", value=d[0])
+        tel = c2.text_input("Telefone", value=d[1])
+        banco = c3.text_input("Banco", value=d[14])
+        agencia = c1.text_input("Agência", value=d[15])
+        conta = c2.text_input("Conta", value=d[16])
+        
+        st.subheader("Habilitação")
+        h1, h2, h3 = st.columns(3)
+        cnh = h1.text_input("CNH", value=d[11])
+        cat = h2.text_input("Categoria", value=d[19])
+        venc = h3.date_input("Vencimento CNH", value=None) # Necessita tratamento de data
+        emissao = h1.date_input("Emissão", value=None)
+        fil = h2.text_input("Filiação", value=d[20])
+        obs = h3.text_area("Observações", value=d[21])
 
-        b1, b2 = st.columns(2)
-        submit_save = b1.form_submit_button("Salvar Novo")
-        submit_upd = b2.form_submit_button("Atualizar")
-
-        if submit_save or submit_upd:
-            payload = {"tipo": "MOTORISTA", "nome": nome, "telefone": tel, "cep": cep, 
-                       "logradouro": logradouro, "numero": numero, "bairro": bairro, 
-                       "municipio": municipio, "uf": uf, "cpf": cpf, "rntrc": rntrc}
-            requests.post("https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec", json=payload)
-            st.success("Dados processados com sucesso!")
+        if st.form_submit_button("Salvar / Atualizar"):
+            payload = {
+                "tipo": "MOTORISTA", "nome": nome, "telefone": tel, "cpf": d[10] or cpf_in,
+                "banco": banco, "agencia": agencia, "conta": conta, "cnh": cnh,
+                "categoria": cat, "filiacao": fil, "obs": obs
+            }
+            try:
+                requests.post("https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec", json=payload)
+                st.success("Dados salvos!")
+            except: st.error("Falha ao salvar.")
