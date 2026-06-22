@@ -1,10 +1,10 @@
 import streamlit as st
 import requests
 
-# Configuração inicial
+# Configuração da página
 st.set_page_config(page_title="TMS FRANCAL", layout="wide")
 
-# Definição do menu na barra lateral
+# Menu Lateral
 st.sidebar.title("TMS FRANCAL")
 menu = st.sidebar.selectbox("Módulo", ["Operação: Coletas", "Cadastro: Motoristas"])
 
@@ -72,5 +72,8 @@ elif menu == "Operação: Coletas":
             "nf": nf, "peso": peso, "volume": volume,
             "valor": valor, "observacoes": obs
         }
-        requests.post(url, json=payload)
-        st.success("Ordem de Coleta enviada!")
+        try:
+            requests.post(url, json=payload)
+            st.success("Ordem de Coleta enviada com sucesso!")
+        except Exception as e:
+            st.error(f"Erro: {e}")
