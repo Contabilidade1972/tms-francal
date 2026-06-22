@@ -1,6 +1,5 @@
 import streamlit as st
 import gspread
-import os
 from datetime import datetime
 
 # Configuração da Página
@@ -8,8 +7,16 @@ st.set_page_config(page_title="TMS FRANCAL", layout="centered")
 st.title("TMS FRANCAL - GESTÃO DE OPERAÇÕES")
 
 def conectar_sheets():
-    # O app vai ler o arquivo credentials.json que está no GitHub
-    gc = gspread.service_account(filename="credentials.json")
+    # A chave está aqui, sem quebras de linha que o sistema possa corromper
+    creds_dict = {
+        "type": "service_account",
+        "project_id": "precise-ascent-347615",
+        "private_key_id": "2587be5c5474121194e18c224ba077d32d67bacd",
+        "private_key": st.secrets["PRIVATE_KEY"].replace('\\n', '\n'),
+        "client_email": "tms-francal-bot@precise-ascent-347615.iam.gserviceaccount.com",
+        "token_uri": "https://oauth2.googleapis.com/token"
+    }
+    gc = gspread.service_account_from_dict(creds_dict)
     sh = gc.open_by_key("1RFiXPxCLPTMBdGWVtPohslcSfgB8ef1_ZyU0IA9_Fgg") 
     return sh.worksheet("REGISTRO_OPERACIONAL")
 
