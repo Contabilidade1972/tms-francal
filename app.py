@@ -1,14 +1,21 @@
 import streamlit as st
 import gspread
-import json
 from datetime import datetime
 
+# Configuração da Página
 st.set_page_config(page_title="TMS FRANCAL", layout="centered")
 st.title("TMS FRANCAL - GESTÃO DE OPERAÇÕES")
 
 def conectar_sheets():
-    # Lê a string JSON completa e converte em dicionário de uma vez
-    creds_dict = json.loads(st.secrets["GSPREAD_JSON"])
+    # Definição direta do dicionário (a chave privada está montada como string bruta)
+    creds_dict = {
+        "type": "service_account",
+        "project_id": "precise-ascent-347615",
+        "private_key_id": "2587be5c5474121194e18c224ba077d32d67bacd",
+        "private_key": st.secrets["PRIVATE_KEY"].replace('\\n', '\n'),
+        "client_email": "tms-francal-bot@precise-ascent-347615.iam.gserviceaccount.com",
+        "token_uri": "https://oauth2.googleapis.com/token"
+    }
     gc = gspread.service_account_from_dict(creds_dict)
     sh = gc.open_by_key("1RFiXPxCLPTMBdGWVtPohslcSfgB8ef1_ZyU0IA9_Fgg") 
     return sh.worksheet("REGISTRO_OPERACIONAL")
@@ -41,4 +48,4 @@ with tab1:
             ws.append_row(nova_linha)
             st.success("Ordem de Coleta gravada com sucesso!")
         except Exception as e:
-            st.error(f"Erro: {e}")
+            st.error(f"Erro ao salvar: {e}")
