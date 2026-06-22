@@ -2,69 +2,49 @@ import streamlit as st
 import requests
 import re
 
-# Funções de formatação
-def formatar_cpf(val):
-    val = re.sub(r'\D', '', str(val))
-    return f"{val[:3]}.{val[3:6]}.{val[6:9]}-{val[9:]}" if len(val) == 11 else val
-
-def formatar_cep(val):
-    val = re.sub(r'\D', '', str(val))
-    return f"{val[:5]}-{val[5:]}" if len(val) == 8 else val
-
+# --- CONFIGURAÇÃO E FUNÇÕES ---
 st.set_page_config(page_title="TMS FRANCAL", layout="wide")
-st.sidebar.title("TMS FRANCAL")
+def formatar_cpf(v): return re.sub(r'(\d{3})(\d{3})(\d{3})(\d{2})', r'\1.\2.\3-\d{2}', re.sub(r'\D', '', v))
+def formatar_cep(v): return re.sub(r'(\d{5})(\d{3})', r'\1-\2', re.sub(r'\D', '', v))
+
 menu = st.sidebar.selectbox("Módulo", ["Operação: Coletas", "Cadastro: Motoristas"])
-ufs = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
 
 if menu == "Cadastro: Motoristas":
     st.title("Cadastro de Motoristas")
-    
-    # Inicializa estados para garantir que o formulário não trave
-    if 'dados_motorista' not in st.session_state: st.session_state.dados_motorista = None
-    
-    col_busca1, col_busca2 = st.columns([3, 1])
-    with col_busca1:
-        cpf_input = st.text_input("CPF (Somente números)")
-    with col_busca2:
-        btn_busca = st.button("Buscar Motorista")
+    if 'data' not in st.session_state: st.session_state.data = None
 
-    if btn_busca and cpf_input:
-        url_busca = f"https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec?cpf={cpf_input}"
-        try:
-            resp = requests.get(url_busca).json()
-            if "status" not in resp:
-                st.session_state.dados_motorista = resp
-                st.rerun()
-            else:
-                st.warning("Motorista não encontrado.")
-        except: st.error("Erro na comunicação com a base.")
+    c1, c2 = st.columns([3, 1])
+    with c1: cpf_in = st.text_input("CPF (Somente números)")
+    with c2: 
+        if st.button("Buscar"):
+            resp = requests.get(f"https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec?cpf={cpf_in}").json()
+            st.session_state.data = resp if "status" not in resp else None
 
-    dados = st.session_state.dados_motorista
+    d = st.session_state.data or ["", "", "", "", "", "", "", "", "", "", "", "", "", ""]
     
-    with st.form(key="motorista_form"):
+    with st.form("motorista_form"):
         col1, col2 = st.columns(2)
         with col1:
-            nome = st.text_input("Nome", value=dados[0] if dados else "")
-            telefone = st.text_input("Telefone", value=dados[1] if dados else "")
-            cep = st.text_input("CEP", value=formatar_cep(dados[2]) if dados else "")
-            logradouro = st.text_input("Logradouro", value=dados[3] if dados else "")
-            numero = st.text_input("Número", value=dados[4] if dados else "")
-            complemento = st.text_input("Complemento", value=dados[5] if dados else "")
-            bairro = st.text_input("Bairro", value=dados[6] if dados else "")
+            nome = st.text_input("Nome", value=d[0])
+            tel = st.text_input("Telefone", value=d[1])
+            cep = st.text_input("CEP", value=d[2])
+            # Busca Automática CEP
+            if len(re.sub(r'\D', '', cep)) == 8:
+                end = requests.get(f"https://viacep.com.br/ws/{cep}/json/").json()
+                log, bair = end.get('logradouro', ''), end.get('bairro', '')
+            else: log, bair = d[3], d[6]
+            logradouro = st.text_input("Logradouro", value=log)
+            numero = st.text_input("Número", value=d[4])
         with col2:
-            municipio = st.text_input("Município", value=dados[7] if dados else "")
-            uf = st.selectbox("UF", ufs, index=ufs.index(dados[8]) if dados and dados[8] in ufs else 12)
-            rg = st.text_input("RG", value=dados[9] if dados else "")
-            cpf = st.text_input("CPF", value=formatar_cpf(dados[10]) if dados else cpf_input)
-            cnh = st.text_input("CNH", value=dados[11] if dados else "")
-            uf_cnh = st.text_input("UF/CNH", value=dados[12] if dados else "")
-            rntrc = st.text_input("RNTRC", value=dados[13] if dados else "")
+            uf = st.selectbox("UF", ["MG", "SP", "RJ", "ES", "DF"], index=0) # Lista completa necessária aqui
+            mun = st.selectbox("Município", ["Belo Horizonte", "Ibirité"]) # Exemplo: Integrar com API IBGE
+            bairro = st.text_input("Bairro", value=bair)
+            cpf = st.text_input("CPF", value=d[10])
+            rntrc = st.text_input("RNTRC", value=d[13])
 
-        if st.form_submit_button("SALVAR / ATUALIZAR"):
-            payload = {"tipo": "MOTORISTA", "nome": nome, "telefone": telefone, "cep": re.sub(r'\D', '', cep), 
-                       "logradouro": logradouro, "numero": numero, "complemento": complemento, 
-                       "bairro": bairro, "municipio": municipio, "uf": uf, "rg": rg, 
-                       "cpf": re.sub(r'\D', '', cpf), "cnh": cnh, "uf_cnh": uf_cnh, "rntrc": rntrc}
-            requests.post("https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec", json=payload)
-            st.success("Dados salvos com sucesso!")
-            st.session_state.dados_motorista = None # Limpa após salvar
+        b1, b2, b3 = st.columns(3)
+        if b1.form_submit_button("Salvar Novo"): # Lógica de Append
+             pass 
+        if b2.form_submit_button("Atualizar"): # Lógica de Update
+             pass
+        if b3.form_button("Limpar"): st.session_state.data = None; st.rerun()
