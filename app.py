@@ -4,12 +4,11 @@ import requests
 # Configuração da página
 st.set_page_config(page_title="TMS FRANCAL", layout="centered")
 
-# Inserindo o Logo (substitua a URL pela URL do seu logo real se tiver online)
-# Se não tiver, deixamos um título com o nome da empresa
-st.image("https://via.placeholder.com/150", caption="Agenciar & Representar Transportes") 
-st.title("TMS FRANCAL - ORDEM DE COLETA")
+# Título da empresa (sem o erro da imagem por enquanto)
+st.markdown("# Agenciar & Representar Transportes")
+st.subheader("TMS FRANCAL - Ordem de Coleta")
 
-# Estrutura de Formulário
+# Estrutura de Formulário organizada
 with st.form(key="coleta_form", clear_on_submit=True):
     col1, col2 = st.columns(2)
     with col1:
