@@ -1,3 +1,7 @@
-creds_dict = st.secrets["gspread"]["gcp_service_account"]
-# O gspread já entende o dicionário direto, não precisa de json.loads!
-gc = gspread.service_account_from_dict(json.loads(creds_dict))
+def conectar_sheets():
+    # Carrega como um dicionário Python real, sem precisar de json.loads()
+    import json
+    creds = json.loads(st.secrets["GCP_JSON"])
+    gc = gspread.service_account_from_dict(creds)
+    sh = gc.open_by_key("1RFiXPxCLPTMBdGWVtPohslcSfgB8ef1_ZyU0IA9_Fgg")
+    return sh.worksheet("REGISTRO_OPERACIONAL")
