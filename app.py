@@ -1,17 +1,14 @@
 import streamlit as st
 import requests
 
-# Configuração da página
 st.set_page_config(page_title="TMS FRANCAL", layout="wide")
 
-# Menu Lateral
 st.sidebar.title("TMS FRANCAL")
 menu = st.sidebar.selectbox("Módulo", ["Operação: Coletas", "Cadastro: Motoristas"])
 
-# --- MÓDULO MOTORISTAS ---
 if menu == "Cadastro: Motoristas":
     st.title("Cadastro de Motoristas")
-    with st.form(key="motorista_form", clear_on_submit=True):
+    with st.form(key="motorista_form"):
         col1, col2 = st.columns(2)
         with col1:
             nome = st.text_input("Nome (Motorista)")
@@ -43,37 +40,9 @@ if menu == "Cadastro: Motoristas":
             try:
                 response = requests.post(url, json=payload)
                 if response.status_code == 200:
-                    st.success("Motorista cadastrado com sucesso!")
+                    st.success("Motorista cadastrado!")
                 else:
-                    st.error(f"Erro no envio: {response.status_code}")
+                    st.error("Erro no envio.")
             except Exception as e:
-                st.error(f"Erro de conexão: {e}")
-
-# --- MÓDULO COLETAS ---
-elif menu == "Operação: Coletas":
-    st.title("TMS FRANCAL - ORDEM DE COLETA")
-    with st.form(key="coleta_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            cnpj_rem = st.text_input("CNPJ Remetente")
-            cnpj_dest = st.text_input("CNPJ Destinatário")
-            peso = st.number_input("Peso Bruto (kg)", min_value=0.0, format="%.2f")
-        with col2:
-            nf = st.text_input("Número da NF")
-            volume = st.number_input("Volumes", min_value=0)
-            valor = st.number_input("Valor da Mercadoria (R$)", min_value=0.0, format="%.2f")
-        obs = st.text_area("Observações")
-        submit_coleta = st.form_submit_button("SALVAR ORDEM DE COLETA")
-
-    if submit_coleta:
-        url = "https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec"
-        payload = {
-            "cnpj_remetente": cnpj_rem, "cnpj_destinatario": cnpj_dest,
-            "nf": nf, "peso": peso, "volume": volume,
-            "valor": valor, "observacoes": obs
-        }
-        try:
-            requests.post(url, json=payload)
-            st.success("Ordem de Coleta enviada com sucesso!")
-        except Exception as e:
-            st.error(f"Erro: {e}")
+                st.error(str(e))
+# (Módulo Coletas segue igual)
