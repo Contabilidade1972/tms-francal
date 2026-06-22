@@ -1,59 +1,41 @@
 import streamlit as st
-import pandas as pd
-import re
 
 st.title("TMS FRANCAL - GESTÃO DE OPERAÇÕES")
 
-# Links da planilha (Aba Clientes)
-URL_CLIENTES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-k3doFN8BGK5YL9su9avmaFLgV97SbE3erJdh0YDJxACO3nNrYX6XTO0a7rhRtUN9xcdeIsLWurAr/pub?gid=1821072074&single=true&output=csv"
+tab1, tab2, tab3 = st.tabs(["Ordem de Coleta", "Minuta de Despacho", "Fatura"])
 
-try:
-    df = pd.read_csv(URL_CLIENTES)
-    df.columns = [col.strip().replace('\n', '') for col in df.columns]
-
-    tab1, tab2, tab3 = st.tabs(["Buscar Cliente", "Gerar Minuta", "Cadastrar Novo"])
-
-    # Aba 1: Busca (Já validada)
-    with tab1:
-        termo = st.text_input("Digite o CNPJ/CPF para busca:")
-        if st.button("BUSCAR CLIENTE"):
-            def limpar(val): return re.sub(r'\D', '', str(val))
-            df['limpo'] = df['CPF/CNPJ'].apply(limpar)
-            resultado = df[df['limpo'] == limpar(termo)]
-            if not resultado.empty:
-                st.write(resultado.iloc[0])
-            else:
-                st.error("Cliente não encontrado.")
-
-    # Aba 2: O novo formulário de Minuta
-    with tab2:
-        st.header("Preencher Minuta de Despacho")
-        cnpj_minuta = st.text_input("CNPJ do Cliente:")
+with tab1:
+    st.header("1. Ordem de Coleta (Solicitação)")
+    
+    # Bloco: Identificação
+    col1, col2 = st.columns(2)
+    with col1:
+        cnpj_remetente = st.text_input("CNPJ Remetente")
+        cnpj_destinatario = st.text_input("CNPJ Destinatário")
+    with col2:
+        nf = st.text_input("Número da Nota Fiscal")
+        data_coleta = st.date_input("Data da Coleta")
         
-        if st.button("PUXAR DADOS"):
-            def limpar(val): return re.sub(r'\D', '', str(val))
-            df['limpo'] = df['CPF/CNPJ'].apply(limpar)
-            cliente = df[df['limpo'] == limpar(cnpj_minuta)]
-            
-            if not cliente.empty:
-                st.session_state['cliente_minuta'] = cliente.iloc[0]
-                st.success("Dados do cliente carregados!")
-            else:
-                st.error("CNPJ não encontrado.")
+    # Bloco: Carga e Peso
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        peso_bruto = st.number_input("Peso Bruto (kg)")
+    with col4:
+        volume = st.number_input("Volume")
+    with col5:
+        valor_mercadoria = st.number_input("Valor da Mercadoria (R$)")
+        
+    # Bloco: Logística
+    observacoes = st.text_area("Observações (ex: Boletos, Seguros)")
+    
+    if st.button("SALVAR ORDEM DE COLETA"):
+        st.success("Ordem de Coleta salva com sucesso! Status: PENDENTE")
 
-        if 'cliente_minuta' in st.session_state:
-            c = st.session_state['cliente_minuta']
-            st.write(f"**Cliente:** {c['Nome']}")
-            st.write(f"**Endereço:** {c['Logradouro']}, {c['Número']} - {c['Município']}")
-            
-            # Campos da NF
-            nf = st.text_input("Número da Nota Fiscal")
-            peso = st.number_input("Peso (kg)")
-            volume = st.number_input("Volume")
-            
-            if st.button("GERAR MINUTA"):
-                st.info(f"Dados prontos para exportação: NF {nf}, Cliente {c['Nome']}, Peso {peso}kg.")
-                # Aqui adicionaremos em breve a lógica de salvar no registro e criar PDF
+with tab2:
+    st.header("2. Minuta de Despacho")
+    st.info("Aqui serão carregados os dados validados da Ordem de Coleta.")
+    # (Este formulário será preenchido automaticamente depois)
 
-except Exception as e:
-    st.error(f"Erro no sistema: {e}")
+with tab3:
+    st.header("3. Fatura")
+    st.info("A fatura será gerada após a confirmação da entrega.")
