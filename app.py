@@ -1,25 +1,26 @@
 import streamlit as st
 import requests
 
-# 1. Título
 st.title("TMS FRANCAL - PROTOCOLO")
 
-# 2. Campos de entrada
 cnpj = st.text_input("CNPJ")
 nf = st.text_input("NF")
 
-# 3. A lógica do botão deve estar após os inputs
 if st.button("SALVAR"):
-    # IMPORTANTE: Coloque a sua URL do Apps Script aqui abaixo
-    url = "COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT"
+    # Cole a SUA URL correta aqui entre as aspas
+    url = "COLE_AQUI_A_SUA_URL_DO_APPS_SCRIPT"
     
     payload = {"cnpj_remetente": cnpj, "nf": nf}
     
     try:
-        response = requests.post(url, json=payload)
+        # Aumentamos o tempo de espera (timeout) para o Google responder
+        response = requests.post(url, json=payload, timeout=10)
+        
+        # Isso vai mostrar na tela o que o Google está respondendo
+        st.write(f"Status Code: {response.status_code}")
+        st.write(f"Resposta: {response.text}")
+        
         if response.status_code == 200:
-            st.success("Dados enviados com sucesso!")
-        else:
-            st.error(f"Erro no envio: {response.status_code}")
+            st.success("Dados enviados!")
     except Exception as e:
-        st.error(f"Erro na conexão: {e}")
+        st.error(f"Erro detalhado: {e}")
