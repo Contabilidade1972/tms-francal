@@ -1,26 +1,37 @@
 import streamlit as st
 import requests
 
+# Configuração da página
+st.set_page_config(page_title="TMS FRANCAL", layout="centered")
+
 st.title("TMS FRANCAL - PROTOCOLO")
 
+# Campos de entrada
 cnpj = st.text_input("CNPJ")
-nf = st.text_input("NF")
+nf = st.text_input("Número da Nota Fiscal")
 
-if st.button("SALVAR"):
-    # Cole a SUA URL correta aqui entre as aspas
-    url = "COLE_AQUI_A_SUA_URL_DO_APPS_SCRIPT"
-    
-    payload = {"cnpj_remetente": cnpj, "nf": nf}
-    
-    try:
-        # Aumentamos o tempo de espera (timeout) para o Google responder
-        response = requests.post(url, json=payload, timeout=10)
+# Botão de envio
+if st.button("SALVAR DADOS"):
+    if not cnpj or not nf:
+        st.warning("Por favor, preencha todos os campos.")
+    else:
+        # COLE SUA URL ABAIXO ENTRE AS ASPAS
+        url = "COLE_SUA_URL_AQUI"
         
-        # Isso vai mostrar na tela o que o Google está respondendo
-        st.write(f"Status Code: {response.status_code}")
-        st.write(f"Resposta: {response.text}")
+        payload = {
+            "cnpj_remetente": cnpj,
+            "nf": nf
+        }
         
-        if response.status_code == 200:
-            st.success("Dados enviados!")
-    except Exception as e:
-        st.error(f"Erro detalhado: {e}")
+        try:
+            # Enviando dados para o Google Apps Script
+            response = requests.post(url, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                st.success("Dados enviados com sucesso para a planilha!")
+            else:
+                st.error(f"Erro ao enviar. Código: {response.status_code}")
+                st.write(f"Detalhes: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Erro de conexão: {e}")
