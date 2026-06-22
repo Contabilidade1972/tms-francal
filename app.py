@@ -1,22 +1,42 @@
 import streamlit as st
 import requests
 
-st.title("TMS FRANCAL - PROTOCOLO")
+st.title("TMS FRANCAL - ORDEM DE COLETA")
 
-cnpj = st.text_input("CNPJ")
-nf = st.text_input("Número da Nota Fiscal")
+# Layout em duas colunas para ficar mais organizado
+col1, col2 = st.columns(2)
 
-if st.button("SALVAR DADOS"):
-    # URL configurada com o seu código de implantação
+with col1:
+    cnpj_rem = st.text_input("CNPJ Remetente")
+    cnpj_dest = st.text_input("CNPJ Destinatário")
+    peso = st.number_input("Peso Bruto (kg)", min_value=0.0)
+
+with col2:
+    nf = st.text_input("Número da NF")
+    volume = st.number_input("Volumes", min_value=0)
+    valor = st.number_input("Valor da Mercadoria (R$)", min_value=0.0)
+
+obs = st.text_area("Observações")
+
+if st.button("SALVAR ORDEM DE COLETA"):
+    # URL da sua implantação
     url = "https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec"
     
-    payload = {"cnpj_remetente": cnpj, "nf": nf}
+    payload = {
+        "cnpj_remetente": cnpj_rem,
+        "cnpj_destinatario": cnpj_dest,
+        "nf": nf,
+        "peso": peso,
+        "volume": volume,
+        "valor": valor,
+        "observacoes": obs
+    }
     
     try:
         response = requests.post(url, json=payload)
         if response.status_code == 200:
-            st.success("Dados enviados com sucesso!")
+            st.success("Ordem de Coleta enviada com sucesso!")
         else:
-            st.error(f"Erro no envio. Código: {response.status_code}")
+            st.error(f"Erro no envio: {response.status_code}")
     except Exception as e:
-        st.error(f"Erro: {e}")
+        st.error(f"Erro de conexão: {e}")
