@@ -1,12 +1,10 @@
 import streamlit as st
-import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 
 st.set_page_config(page_title="TMS FRANCAL - Cadastro Profissional", layout="wide")
 
-# Configuração de Conexão
 def get_sheet():
     creds_dict = st.secrets["gcp_service_account"]
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -14,8 +12,9 @@ def get_sheet():
     client = gspread.authorize(creds)
     return client.open_by_key("1RFiXPxCLPTMBdGWVtPohslcSfgB8ef1_ZyU0IA9_Fgg").worksheet("REGISTRO_OPERACIONAL")
 
-# Variáveis Globais
-ufs = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
+# Inicializa sessão para manter dados
+if 'motorista_data' not in st.session_state:
+    st.session_state.motorista_data = None
 
 st.sidebar.title("TMS FRANCAL")
 menu = st.sidebar.radio("Navegação", ["Cadastro de Motorista", "Consulta/Auditoria"])
@@ -23,75 +22,72 @@ menu = st.sidebar.radio("Navegação", ["Cadastro de Motorista", "Consulta/Audit
 if menu == "Cadastro de Motorista":
     st.header("👤 Cadastro de Motorista")
     
-    # Inicializa campos de sessão
-    if 'dados_motorista' not in st.session_state:
-        st.session_state.dados_motorista = {}
-
-    with st.form("form_tms", clear_on_submit=False):
-        col_c1, col_c2 = st.columns([2, 1])
-        with col_c1:
-            cpf_pesquisa = st.text_input("CPF (Para busca/edição)", key="cpf_search")
-        with col_c2:
+    with st.form("form_tms"):
+        c1, c2 = st.columns([4, 1])
+        with c1:
+            cpf_search = st.text_input("CPF (Para buscar/editar)", key="cpf_input")
+        with c2:
             btn_buscar = st.form_submit_button("Buscar CPF")
 
-        # Se buscar, preenche campos
         if btn_buscar:
             try:
                 sheet = get_sheet()
-                dados = sheet.get_all_values()
-                for row in dados:
-                    if row[10] == cpf_pesquisa: # Coluna K (índice 10) = CPF
-                        st.session_state.dados_motorista = {"nome": row[0], "tel": row[1], "cep": row[2]} # ... Mapear todos
-                        st.success("Dados encontrados!")
-            except: st.error("Erro na busca.")
+                all_data = sheet.get_all_values()
+                # Procura o CPF na coluna K (índice 10)
+                encontrado = False
+                for row in all_data:
+                    if row[10].strip() == cpf_search.strip():
+                        st.session_state.motorista_data = row
+                        encontrado = True
+                        st.success("Dados carregados com sucesso!")
+                        break
+                if not encontrado:
+                    st.warning("CPF não encontrado. Preencha os dados para um novo cadastro.")
+                    st.session_state.motorista_data = None
+            except Exception as e:
+                st.error(f"Erro na busca: {e}")
 
-        # Campos do Formulário (A até W)
-        st.subheader("Dados Pessoais")
-        nome = st.text_input("Nome", value=st.session_state.dados_motorista.get('nome', ''))
-        col1, col2 = st.columns(2)
-        with col1:
-            tel = st.text_input("Telefone Comercial")
-            cpf = st.text_input("CPF", value=cpf_pesquisa)
-            rg = st.text_input("RG")
-        with col2:
-            data_nasc = st.date_input("Data de Nascimento/Emissão")
-            filia = st.text_input("Filiação")
-            obs = st.text_area("Observação")
+        # Preenche os campos (se houver dados na sessão)
+        d = st.session_state.motorista_data or [""] * 23
+        
+        nome = st.text_input("Nome Completo", value=d[0])
+        col_tel, col_data = st.columns(2)
+        tel = col_tel.text_input("Telefone Comercial", value=d[1])
+        data_nasc = col_data.text_input("Data de Nascimento/Emissão", value=d[7])
+        
+        cpf = st.text_input("CPF", value=d[10] if d[10] else cpf_search)
+        filia = st.text_input("Filiação", value=d[20])
+        rg = st.text_input("RG", value=d[9])
+        obs = st.text_area("Observação", value=d[21])
 
         st.subheader("Endereço")
-        cep = st.text_input("CEP")
-        col3, col4 = st.columns(2)
-        with col3:
-            logra = st.text_input("Logradouro")
-            bairro = st.text_input("Bairro")
-        with col4:
-            num = st.text_input("Número")
-            compl = st.text_input("Complemento")
-            muni = st.text_input("Município")
-            uf = st.selectbox("UF", ufs, index=12)
+        col_e1, col_e2 = st.columns(2)
+        cep = col_e1.text_input("CEP", value=d[2])
+        logra = col_e2.text_input("Logradouro", value=d[3])
+        num = col_e1.text_input("Número", value=d[4])
+        compl = col_e2.text_input("Complemento", value=d[5])
+        bairro = col_e1.text_input("Bairro", value=d[6])
+        muni = col_e2.text_input("Município", value=d[7])
+        uf = st.selectbox("UF", ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"], index=10)
 
-        st.subheader("Habilitação e Dados Bancários")
-        col5, col6 = st.columns(2)
-        with col5:
-            cnh = st.text_input("CNH")
-            uf_cnh = st.selectbox("UF/CNH", ufs)
-            rntrc = st.text_input("RNTRC")
-            cat_cnh = st.text_input("Categoria CNH")
-        with col6:
-            banco = st.text_input("Banco")
-            agencia = st.text_input("Agência")
-            conta = st.text_input("Conta")
-            venc_cnh = st.date_input("Vencimento CNH")
+        st.subheader("Habilitação e Banco")
+        col_h1, col_h2 = st.columns(2)
+        cnh = col_h1.text_input("CNH", value=d[11])
+        uf_cnh = col_h2.text_input("UF/CNH", value=d[12])
+        rntrc = col_h1.text_input("RNTRC", value=d[13])
+        cat_cnh = col_h2.text_input("Categoria CNH", value=d[19])
+        banco = col_h1.text_input("Banco", value=d[14])
+        agencia = col_h2.text_input("Agência", value=d[15])
+        conta = col_h1.text_input("Conta", value=d[16])
+        venc_cnh = col_h2.text_input("Vencimento CNH", value=d[18])
 
-        submit_final = st.form_submit_button("Salvar Registro")
+        submit_salvar = st.form_submit_button("Salvar Registro")
 
-    if submit_final:
-        sheet = get_sheet()
-        # Salva todos os 23 campos (A a W)
-        sheet.append_row([nome, tel, cep, logra, num, compl, bairro, muni, uf, rg, cpf, cnh, uf_cnh, rntrc, banco, agencia, conta, str(data_nasc), str(venc_cnh), cat_cnh, filia, obs, ""])
-        st.success("Dados salvos com sucesso!")
-
-elif menu == "Consulta/Auditoria":
-    st.header("🔍 Auditoria")
-    if st.button("Carregar Dados"):
-        st.table(get_sheet().get_all_values())
+    if submit_salvar:
+        try:
+            sheet = get_sheet()
+            novo_dado = [nome, tel, cep, logra, num, compl, bairro, muni, uf, rg, cpf, cnh, uf_cnh, rntrc, banco, agencia, conta, "", venc_cnh, cat_cnh, filia, obs, ""]
+            sheet.append_row(novo_dado)
+            st.success("Dados salvos com sucesso!")
+        except Exception as e:
+            st.error(f"Erro ao salvar: {e}")
