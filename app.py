@@ -2,20 +2,20 @@ import streamlit as st
 import pandas as pd
 import re
 
-st.set_page_config(page_title="TMS FRANCAL - Gestão", layout="wide")
+st.set_page_config(page_title="TMS FRANCAL - Cadastro Profissional", layout="wide")
 
+# Link da sua planilha CSV pública
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-k3doFN8BGK5YL9su9avmaFLgV97SbE3erJdh0YDJxACO3nNrYX6XTO0a7rhRtUN9xcdeIsLWurAr/pub?gid=1127537998&single=true&output=csv"
 
 @st.cache_data(ttl=60)
 def load_data():
     return pd.read_csv(SHEET_URL)
 
-st.sidebar.title("TMS FRANCAL")
-menu = st.sidebar.radio("Navegação", ["Cadastro de Motorista", "Consulta/Auditoria"])
-
-# Função auxiliar para limpar CPF (remove tudo que não é número)
 def limpar_cpf(cpf):
     return re.sub(r'\D', '', str(cpf))
+
+st.sidebar.title("TMS FRANCAL")
+menu = st.sidebar.radio("Navegação", ["Cadastro de Motorista", "Consulta/Auditoria"])
 
 if menu == "Cadastro de Motorista":
     st.header("👤 Cadastro Completo de Motorista")
@@ -26,22 +26,26 @@ if menu == "Cadastro de Motorista":
         
         if c_btn.form_submit_button("Buscar CPF"):
             df = load_data()
-            # Limpa a coluna de busca e o input para garantir igualdade
-            cpf_limpo = limpar_cpf(cpf_input)
+            cpf_alvo = limpar_cpf(cpf_input)
             
-            # Busca ignorando formatação na planilha
-            df['cpf_limpo'] = df.iloc[:, 10].apply(limpar_cpf)
-            resultado = df[df['cpf_limpo'] == cpf_limpo]
+            # Busca em todas as colunas para identificar onde o CPF está
+            encontrado = False
+            for col_idx in range(len(df.columns)):
+                df['temp_col'] = df.iloc[:, col_idx].apply(limpar_cpf)
+                if cpf_alvo in df['temp_col'].values:
+                    resultado = df[df['temp_col'] == cpf_alvo].iloc[0]
+                    st.session_state.dados = resultado.tolist()
+                    st.success(f"Motorista encontrado na coluna de índice: {col_idx}")
+                    encontrado = True
+                    break
             
-            if not resultado.empty:
-                st.session_state.dados = resultado.iloc[0].tolist()
-                st.success(f"Motorista {resultado.iloc[0, 0]} encontrado!")
-            else:
-                st.warning("Motorista não encontrado. Verifique se o CPF na planilha está na coluna K.")
+            if not encontrado:
+                st.warning("CPF não encontrado em nenhuma coluna da planilha.")
                 st.session_state.dados = [""] * 23
 
         d = st.session_state.get('dados', [""] * 23)
         
+        # Grid com 23 campos (A até W)
         c1, c2, c3 = st.columns(3)
         nome = c1.text_input("Nome", value=d[0])
         tel = c2.text_input("Telefone", value=d[1])
