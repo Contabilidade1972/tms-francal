@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
 
-# URL DO SEU GOOGLE APPS SCRIPT (SUBSTITUA PELO LINK CORRETO)
-URL = "COLE_AQUI_SUA_URL_DE_DEPLOY"
+# AQUI ESTÁ O ERRO: Substitua o texto abaixo pela SUA URL real do Google Apps Script
+URL = "COLE_AQUI_A_SUA_URL_REAL_QUE_TERMINA_EM_/exec"
 
 st.set_page_config(layout="wide", page_title="TMS FRANCAL")
 st.sidebar.title("TMS FRANCAL")
@@ -15,11 +15,14 @@ if 'd' not in st.session_state: st.session_state.d = [""] * 23
 # BUSCA
 cpf_busca = st.text_input("Buscar por CPF (apenas números)")
 if st.button("Buscar Motorista"):
-    try:
-        r = requests.get(f"{URL}?cpf={cpf_busca}", timeout=10)
-        st.session_state.d = r.json() if r.status_code == 200 else [""] * 23
-        st.rerun()
-    except Exception as e: st.error(f"Erro na busca: {e}")
+    if URL.startswith("http"): # Validação de segurança
+        try:
+            r = requests.get(f"{URL}?cpf={cpf_busca}", timeout=10)
+            st.session_state.d = r.json() if r.status_code == 200 else [""] * 23
+            st.rerun()
+        except Exception as e: st.error(f"Erro na busca: {e}")
+    else:
+        st.error("Erro: Você não substituiu o texto 'COLE_AQUI...' pela sua URL real no código.")
 
 d = st.session_state.d
 
