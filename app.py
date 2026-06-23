@@ -1,29 +1,24 @@
 import streamlit as st
 import requests
 
-# URL oficial extraída da sua Versão 28
+# URL atualizada Versão 29
 URL = "https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec"
 
-st.set_page_config(layout="wide", page_title="TMS FRANCAL")
-st.sidebar.title("TMS FRANCAL")
-st.sidebar.selectbox("Módulo", ["Cadastro: Motoristas"])
-
-st.title("Cadastro de Motoristas")
+st.set_page_config(layout="wide")
+st.title("Cadastro de Motoristas - TMS FRANCAL")
 
 if 'd' not in st.session_state: st.session_state.d = [""] * 23
 
-# BUSCA
 cpf_busca = st.text_input("Buscar por CPF (apenas números)")
 if st.button("Buscar Motorista"):
     try:
         r = requests.get(f"{URL}?cpf={cpf_busca}", timeout=10)
         st.session_state.d = r.json() if r.status_code == 200 else [""] * 23
         st.rerun()
-    except Exception as e: st.error(f"Erro na busca: {e}")
+    except Exception as e: st.error(f"Erro na comunicação: {e}")
 
 d = st.session_state.d
 
-# FORMULÁRIO
 with st.form("motorista_form"):
     st.subheader("Dados Pessoais")
     c1, c2, c3 = st.columns(3)
@@ -59,7 +54,7 @@ with st.form("motorista_form"):
     cat = h6.text_input("Categoria", value=d[20])
     
     h7, h8, h9 = st.columns(3)
-    banco = h7.text_input("Banco", value=d[14])
+    banco = h7.text_input("Banco (ex: 001)", value=d[14])
     ag = h8.text_input("Agência", value=d[15])
     conta = h9.text_input("Conta", value=d[16])
     
@@ -67,12 +62,13 @@ with st.form("motorista_form"):
     obs = st.text_area("Observações", value=d[22])
 
     if st.form_submit_button("SALVAR / ATUALIZAR DADOS"):
+        # Forçamos o .upper() aqui para garantir o padrão visual
         payload = {
-            "nome": nome, "tel": tel, "cep": cep, "log": log, "num": num,
-            "comp": comp, "bair": bairro, "mun": mun, "uf": uf, "rg": rg,
-            "cpf": cpf, "cnh": cnh, "ufcnh": ufcnh, "rntrc": rntrc, "banco": banco,
+            "nome": nome.upper(), "tel": tel, "cep": cep, "log": log.upper(), "num": num,
+            "comp": comp.upper(), "bair": bairro.upper(), "mun": mun.upper(), "uf": uf.upper(), "rg": rg,
+            "cpf": cpf, "cnh": cnh.upper(), "ufcnh": ufcnh.upper(), "rntrc": rntrc, "banco": banco,
             "ag": ag, "conta": conta, "nasc": nasc, "emis": emissao,
-            "venc": venc, "cat": cat, "fil": filiacao, "obs": obs
+            "venc": venc, "cat": cat.upper(), "fil": filiacao.upper(), "obs": obs.upper()
         }
         try:
             requests.post(URL, json=payload)
