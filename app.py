@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
+import re
 
-# Configuração da Página
 st.set_page_config(page_title="TMS FRANCAL - Gestão", layout="wide")
 
-# Link da sua planilha pública (CSV)
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-k3doFN8BGK5YL9su9avmaFLgV97SbE3erJdh0YDJxACO3nNrYX6XTO0a7rhRtUN9xcdeIsLWurAr/pub?gid=1127537998&single=true&output=csv"
 
 @st.cache_data(ttl=60)
@@ -14,6 +13,10 @@ def load_data():
 st.sidebar.title("TMS FRANCAL")
 menu = st.sidebar.radio("Navegação", ["Cadastro de Motorista", "Consulta/Auditoria"])
 
+# Função auxiliar para limpar CPF (remove tudo que não é número)
+def limpar_cpf(cpf):
+    return re.sub(r'\D', '', str(cpf))
+
 if menu == "Cadastro de Motorista":
     st.header("👤 Cadastro Completo de Motorista")
     
@@ -22,25 +25,26 @@ if menu == "Cadastro de Motorista":
         cpf_input = c_busca.text_input("CPF para busca")
         
         if c_btn.form_submit_button("Buscar CPF"):
-            try:
-                df = load_data()
-                # Busca pelo CPF na coluna índice 10 (Coluna K)
-                resultado = df[df.iloc[:, 10].astype(str) == cpf_input]
-                if not resultado.empty:
-                    st.session_state.dados = resultado.iloc[0].tolist()
-                    st.success("Dados encontrados e carregados!")
-                else:
-                    st.warning("Motorista não encontrado na base.")
-            except Exception as e:
-                st.error(f"Erro ao buscar: {e}")
+            df = load_data()
+            # Limpa a coluna de busca e o input para garantir igualdade
+            cpf_limpo = limpar_cpf(cpf_input)
+            
+            # Busca ignorando formatação na planilha
+            df['cpf_limpo'] = df.iloc[:, 10].apply(limpar_cpf)
+            resultado = df[df['cpf_limpo'] == cpf_limpo]
+            
+            if not resultado.empty:
+                st.session_state.dados = resultado.iloc[0].tolist()
+                st.success(f"Motorista {resultado.iloc[0, 0]} encontrado!")
+            else:
+                st.warning("Motorista não encontrado. Verifique se o CPF na planilha está na coluna K.")
+                st.session_state.dados = [""] * 23
 
-        # Dados da sessão ou vazio
         d = st.session_state.get('dados', [""] * 23)
         
-        # Grid dos 23 campos mapeados (A até W)
         c1, c2, c3 = st.columns(3)
         nome = c1.text_input("Nome", value=d[0])
-        tel = c2.text_input("Telefone Comercial", value=d[1])
+        tel = c2.text_input("Telefone", value=d[1])
         cep = c3.text_input("CEP", value=d[2])
         logra = c1.text_input("Logradouro", value=d[3])
         num = c2.text_input("Número", value=d[4])
@@ -62,12 +66,8 @@ if menu == "Cadastro de Motorista":
         fil = c2.text_input("Filiação", value=d[20])
         obs = st.text_area("Observação", value=d[21])
 
-        if st.form_submit_button("Salvar Registro"):
-            st.info("Sistema configurado com leitura via CSV. Para salvar, você precisará habilitar o acesso via Google Sheets API ou preencher formulário direto no Sheets.")
+        st.form_submit_button("Salvar Registro")
 
 elif menu == "Consulta/Auditoria":
-    st.header("🔍 Auditoria de Dados")
-    try:
-        st.table(load_data())
-    except Exception as e:
-        st.error(f"Erro ao carregar dados: {e}")
+    st.header("🔍 Auditoria")
+    st.table(load_data())
