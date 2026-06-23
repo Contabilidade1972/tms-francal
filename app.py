@@ -3,38 +3,53 @@ import gspread
 import json
 from google.oauth2.service_account import Credentials
 
-st.set_page_config(page_title="TMS FRANCAL - Gestão", layout="wide")
+# Configuração de Layout
+st.set_page_config(page_title="TMS FRANCAL - Sistema de Gestão", layout="wide")
 
-# Conexão blindada
+# Função de Conexão com Google Sheets (Blindada contra erro de PEM)
 def get_sheet():
     # Carrega a string JSON do secrets
     info = json.loads(st.secrets["gcp_json"])
-    creds = Credentials.from_service_account_info(info)
-    scoped = creds.with_scopes(['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive'])
-    client = gspread.authorize(scoped)
+    # Corrige a quebra de linha da chave privada
+    info['private_key'] = info['private_key'].replace('\\n', '\n')
+    
+    scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds = Credentials.from_service_account_info(info, scopes=scopes)
+    client = gspread.authorize(creds)
     return client.open_by_key("1RFiXPxCLPTMBdGWVtPohslcSfgB8ef1_ZyU0IA9_Fgg").worksheet("REGISTRO_OPERACIONAL")
 
+# Menu Lateral
 st.sidebar.title("TMS FRANCAL")
 menu = st.sidebar.radio("Navegação", ["Cadastro de Motorista", "Consulta/Auditoria"])
+
+# Inicializa sessão para manter dados da busca
+if 'data' not in st.session_state:
+    st.session_state.data = [""] * 23
 
 if menu == "Cadastro de Motorista":
     st.header("👤 Cadastro Completo de Motorista")
     
     with st.form("form_tms", clear_on_submit=False):
-        cpf_busca = st.text_input("CPF (Para buscar/editar)")
-        if st.form_submit_button("Buscar CPF"):
+        c_busca, c_btn = st.columns([4, 1])
+        cpf_busca = c_busca.text_input("CPF para busca")
+        if c_btn.form_submit_button("Buscar CPF"):
             try:
                 sheet = get_sheet()
                 dados = sheet.get_all_values()
+                encontrado = False
                 for row in dados:
                     if len(row) > 10 and row[10] == cpf_busca:
                         st.session_state.data = row
-                        st.success("Dados carregados!")
+                        st.success("Dados carregados com sucesso!")
+                        encontrado = True
                         break
-            except Exception as e: st.error(f"Erro na conexão: {e}")
+                if not encontrado:
+                    st.warning("Motorista não encontrado. Preencha os campos abaixo.")
+            except Exception as e: st.error(f"Erro de conexão: {e}")
 
-        d = st.session_state.get('data', [""] * 23)
+        d = st.session_state.data
         
+        # Grid de campos (A a W)
         c1, c2, c3 = st.columns(3)
         nome = c1.text_input("Nome", value=d[0])
         tel = c2.text_input("Telefone", value=d[1])
@@ -59,7 +74,7 @@ if menu == "Cadastro de Motorista":
         fil = c2.text_input("Filiação", value=d[20])
         obs = st.text_area("Observação", value=d[21])
 
-        if st.form_submit_button("Salvar Registro"):
+        if st.form_submit_button("Salvar no TMS"):
             try:
                 sheet = get_sheet()
                 nova_linha = [nome, tel, cep, logra, num, compl, bairro, muni, uf, rg, cpf, cnh, ufcnh, rntrc, banco, agencia, conta, nasc, venc, cat, fil, obs, ""]
@@ -68,7 +83,8 @@ if menu == "Cadastro de Motorista":
             except Exception as e: st.error(f"Erro ao salvar: {e}")
 
 elif menu == "Consulta/Auditoria":
-    st.header("🔍 Auditoria")
-    if st.button("Carregar Dados"):
-        try: st.table(get_sheet().get_all_values())
+    st.header("🔍 Auditoria de Motoristas")
+    if st.button("Carregar Tabela de Dados"):
+        try:
+            st.table(get_sheet().get_all_values())
         except Exception as e: st.error(f"Erro: {e}")
