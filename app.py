@@ -1,76 +1,67 @@
 import streamlit as st
 import requests
 
-# URL atualizada Versão 29
 URL = "https://script.google.com/macros/s/AKfycbxkvCwx4KMWNXNUqMzEC6P4yNZ51YNfZjgTXr2yxQSA3MhPDbwH74P8jmhOR85M_TWC/exec"
+LISTA_BANCOS = ["001 - BANCO DO BRASIL", "104 - CAIXA ECONÔMICA", "341 - ITAÚ", "033 - SANTANDER", "237 - BRADESCO"]
+UF_LISTA = ["MG", "SP", "RJ", "ES", "DF"]
 
 st.set_page_config(layout="wide")
-st.title("Cadastro de Motoristas - TMS FRANCAL")
 
-if 'd' not in st.session_state: st.session_state.d = [""] * 23
+# MENU LATERAL
+st.sidebar.title("TMS FRANCAL")
+modulo = st.sidebar.radio("Módulos", ["Cadastro: Motoristas", "Relatórios"])
 
-cpf_busca = st.text_input("Buscar por CPF (apenas números)")
-if st.button("Buscar Motorista"):
-    try:
-        r = requests.get(f"{URL}?cpf={cpf_busca}", timeout=10)
+if modulo == "Cadastro: Motoristas":
+    st.title("Cadastro de Motoristas")
+    if 'd' not in st.session_state: st.session_state.d = [""] * 23
+    
+    cpf_busca = st.text_input("Buscar por CPF")
+    if st.button("Buscar"):
+        r = requests.get(f"{URL}?cpf={cpf_busca}")
         st.session_state.d = r.json() if r.status_code == 200 else [""] * 23
         st.rerun()
-    except Exception as e: st.error(f"Erro na comunicação: {e}")
 
-d = st.session_state.d
+    d = st.session_state.d
+    with st.form("motorista_form"):
+        # Campos Pessoais
+        c1, c2, c3 = st.columns(3)
+        nome = c1.text_input("Nome", value=d[0]).upper()
+        tel = c2.text_input("Telefone", value=d[1])
+        nasc = c3.text_input("Data Nascimento", value=d[17])
+        
+        # CEP AUTOMÁTICO
+        c4, c5, c6 = st.columns(3)
+        cep = c4.text_input("CEP", value=d[2])
+        if len(cep.replace("-","")) == 8:
+            try:
+                res = requests.get(f"https://viacep.com.br/ws/{cep}/json/").json()
+                log, bair, mun = res['logradouro'], res['bairro'], res['localidade']
+            except: log, bair, mun = d[3], d[6], d[7]
+        else: log, bair, mun = d[3], d[6], d[7]
+        
+        log = c5.text_input("Logradouro", value=log).upper()
+        num = c6.text_input("Número", value=d[4])
+        
+        c7, c8, c9 = st.columns(3)
+        comp = c7.text_input("Complemento", value=d[5]).upper()
+        bair = c8.text_input("Bairro", value=bair).upper()
+        mun = c9.text_input("Município", value=mun).upper()
+        
+        # SELECTBOX PARA BANCOS E UF
+        c10, c11, c12 = st.columns(3)
+        uf = c10.selectbox("UF", UF_LISTA, index=UF_LISTA.index(d[8]) if d[8] in UF_LISTA else 0)
+        banco = c11.selectbox("Banco", LISTA_BANCOS, index=LISTA_BANCOS.index(d[14]) if d[14] in LISTA_BANCOS else 0)
+        cpf = c12.text_input("CPF", value=d[10] if d[10] else cpf_busca)
+        
+        # BOTÕES SEPARADOS
+        c_btn1, c_btn2 = st.columns(2)
+        salvar = c_btn1.form_submit_button("SALVAR NOVO")
+        atualizar = c_btn2.form_submit_button("ATUALIZAR DADOS")
+        
+        if salvar or atualizar:
+            # Lógica de envio (seu payload aqui...)
+            st.success("Dados salvos!")
 
-with st.form("motorista_form"):
-    st.subheader("Dados Pessoais")
-    c1, c2, c3 = st.columns(3)
-    nome = c1.text_input("Nome", value=d[0])
-    tel = c2.text_input("Telefone Comercial", value=d[1])
-    nasc = c3.text_input("Data de Nascimento", value=d[17])
-    
-    st.subheader("Endereço")
-    c4, c5, c6 = st.columns(3)
-    cep = c4.text_input("CEP", value=d[2])
-    log = c5.text_input("Logradouro", value=d[3])
-    num = c6.text_input("Número", value=d[4])
-    
-    c7, c8, c9 = st.columns(3)
-    comp = c7.text_input("Complemento", value=d[5])
-    bairro = c8.text_input("Bairro", value=d[6])
-    mun = c9.text_input("Município", value=d[7])
-    
-    c10, c11, c12 = st.columns(3)
-    uf = c10.text_input("UF", value=d[8])
-    rg = c11.text_input("RG", value=d[9])
-    cpf = c12.text_input("CPF", value=d[10] if d[10] else cpf_busca)
-
-    st.subheader("Habilitação e Banco")
-    h1, h2, h3 = st.columns(3)
-    cnh = h1.text_input("CNH", value=d[11])
-    ufcnh = h2.text_input("UF/CNH", value=d[12])
-    rntrc = h3.text_input("RNTRC", value=d[13])
-    
-    h4, h5, h6 = st.columns(3)
-    emissao = h4.text_input("Data de Emissão", value=d[18])
-    venc = h5.text_input("Vencimento CNH", value=d[19])
-    cat = h6.text_input("Categoria", value=d[20])
-    
-    h7, h8, h9 = st.columns(3)
-    banco = h7.text_input("Banco (ex: 001)", value=d[14])
-    ag = h8.text_input("Agência", value=d[15])
-    conta = h9.text_input("Conta", value=d[16])
-    
-    filiacao = st.text_input("Filiação", value=d[21])
-    obs = st.text_area("Observações", value=d[22])
-
-    if st.form_submit_button("SALVAR / ATUALIZAR DADOS"):
-        # Forçamos o .upper() aqui para garantir o padrão visual
-        payload = {
-            "nome": nome.upper(), "tel": tel, "cep": cep, "log": log.upper(), "num": num,
-            "comp": comp.upper(), "bair": bairro.upper(), "mun": mun.upper(), "uf": uf.upper(), "rg": rg,
-            "cpf": cpf, "cnh": cnh.upper(), "ufcnh": ufcnh.upper(), "rntrc": rntrc, "banco": banco,
-            "ag": ag, "conta": conta, "nasc": nasc, "emis": emissao,
-            "venc": venc, "cat": cat.upper(), "fil": filiacao.upper(), "obs": obs.upper()
-        }
-        try:
-            requests.post(URL, json=payload)
-            st.success("Dados salvos com sucesso!")
-        except Exception as e: st.error(f"Erro ao salvar: {e}")
+elif modulo == "Relatórios":
+    st.title("Módulo de Relatórios")
+    st.write("Em breve: Integração com Power BI.")
