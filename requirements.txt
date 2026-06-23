@@ -1,7 +1,5 @@
 streamlit
 gspread
-oauth2client
-requests
 google-auth
 google-auth-oauthlib
-gspread
+requests
